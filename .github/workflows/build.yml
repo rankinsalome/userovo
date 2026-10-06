@@ -1,0 +1,43 @@
+name: iOS Build
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build
+        run: |
+          xcodebuild \
+            -project ys.xcodeproj \
+            -scheme ys \
+            -sdk iphonesimulator \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build \
+            build
+
+      - name: Package app
+        run: |
+          cd build/Build/Products/Debug-iphonesimulator
+          zip -r ys.app.zip ys.app
+
+      - name: Upload app
+        uses: actions/upload-artifact@v4
+        with:
+          name: ys-app
+          path: build/Build/Products/Debug-iphonesimulator/ys.app.zip

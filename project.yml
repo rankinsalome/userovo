@@ -1,0 +1,16 @@
+name: ys
+
+options:
+  bundleIdPrefix: com.userovo
+
+targets:
+  ys:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: ys
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.userovo.ys
+        GENERATE_INFOPLIST_FILE: YES
