@@ -1,4 +1,4 @@
-name: iOS Build
+name: Build iOS IPA
 
 on:
   push:
@@ -20,24 +20,31 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen generate
 
-      - name: Build
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Build iPhoneOS app
         run: |
           xcodebuild \
             -project ys.xcodeproj \
             -scheme ys \
-            -sdk iphonesimulator \
+            -sdk iphoneos \
             -configuration Debug \
-            -destination 'generic/platform=iOS Simulator' \
+            -destination 'generic/platform=iOS' \
             -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
             build
 
-      - name: Package app
+      - name: Create IPA
         run: |
-          cd build/Build/Products/Debug-iphonesimulator
-          zip -r ys.app.zip ys.app
+          rm -rf Payload
+          mkdir Payload
+          cp -R build/Build/Products/Debug-iphoneos/ys.app Payload/ys.app
+          zip -r ys.ipa Payload
 
-      - name: Upload app
+      - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
-          name: ys-app
-          path: build/Build/Products/Debug-iphonesimulator/ys.app.zip
+          name: ys-ipa
+          path: ys.ipa
