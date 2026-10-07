@@ -21,7 +21,9 @@ struct ContentView: View {
 
     @State private var gearValue: Int32?
 
-    private let memory = MemoryManager.shared
+    private var memory: MemoryManager {
+        MemoryManager(task: TargetTaskManager.shared.task)
+    }
 
     var body: some View {
         NavigationStack {

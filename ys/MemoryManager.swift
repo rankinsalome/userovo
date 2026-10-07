@@ -5,10 +5,10 @@ final class MemoryManager {
 
     static let shared = MemoryManager()
 
-    private init() {}
+    private let task: mach_port_t
 
-    private var task: mach_port_t {
-        mach_task_self_
+    init(task: mach_port_t = mach_task_self_) {
+        self.task = task
     }
 
     // MARK: - Int32 Read
