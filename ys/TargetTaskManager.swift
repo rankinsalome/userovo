@@ -73,7 +73,7 @@ final class TargetTaskManager {
     }
 
     func disconnect() {
-        task = MACH_PORT_NULL
+        task = mach_port_t(MACH_PORT_NULL)
         targetApp = nil
         errorMessage = nil
     }
