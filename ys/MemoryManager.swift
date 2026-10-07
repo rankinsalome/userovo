@@ -1,5 +1,5 @@
 import Foundation
-import Mach
+import Darwin
 
 final class MemoryManager {
 
@@ -30,7 +30,7 @@ final class MemoryManager {
         }
 
         guard result == KERN_SUCCESS,
-              size == MemoryLayout<Int32>.size else {
+              size == mach_msg_type_number_t(MemoryLayout<Int32>.size) else {
             return nil
         }
 
@@ -75,7 +75,7 @@ final class MemoryManager {
         }
 
         guard result == KERN_SUCCESS,
-              size == MemoryLayout<Float>.size else {
+              size == mach_msg_type_number_t(MemoryLayout<Float>.size) else {
             return nil
         }
 
