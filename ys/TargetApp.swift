@@ -2,8 +2,11 @@ import Foundation
 
 struct TargetApp {
     var bundleID: String = ""
+    var processName: String = ""
+    var pid: Int32?
+
     var moduleName: String = "UnityFramework"
-    var moduleBase: UInt64 = 0
+    var moduleBase: UInt64?
 
     var offsets: [UInt64] = [
         0x1355AC68,

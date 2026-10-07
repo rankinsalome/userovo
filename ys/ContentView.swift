@@ -3,32 +3,48 @@ import SwiftUI
 struct ContentView: View {
 
     @State private var bundleID = ""
+
     @State private var moduleName = "UnityFramework"
 
     @State private var offset1 = "0x1355AC68"
     @State private var offset2 = "0xB8"
     @State private var offset3 = "0x1AC"
 
-    @State private var status = "等待识别"
-    @State private var moduleBase = "未获取"
+    @State private var pidText = ""
+    @State private var moduleBaseText = ""
 
-    @State private var slotAddress = "未计算"
-    @State private var staticDataAddress = "未计算"
-    @State private var gearAddress = "未计算"
+    @State private var status = "未连接"
+
+    @State private var slotAddress = "—"
+    @State private var staticDataAddress = "—"
+    @State private var gearAddress = "—"
 
     @State private var gearValue: Int32?
+
+    private let memory = MemoryManager.shared
 
     var body: some View {
         NavigationStack {
             Form {
 
+                // MARK: Target
+
                 Section("目标 App") {
+
                     TextField(
-                        "com.example.app",
+                        "Bundle ID",
                         text: $bundleID
                     )
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
+                    .font(.system(.body, design: .monospaced))
+
+                    TextField(
+                        "PID",
+                        text: $pidText
+                    )
+                    .keyboardType(.numberPad)
+                    .font(.system(.body, design: .monospaced))
 
                     TextField(
                         "模块",
@@ -36,13 +52,17 @@ struct ContentView: View {
                     )
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
+                    .font(.system(.body, design: .monospaced))
 
-                    Button("识别目标") {
-                        identifyTarget()
+                    Button("连接目标") {
+                        connectTarget()
                     }
                 }
 
-                Section("目标状态") {
+                // MARK: Module
+
+                Section("模块") {
+
                     HStack {
                         Text("状态")
 
@@ -50,73 +70,101 @@ struct ContentView: View {
 
                         Text(status)
                             .foregroundStyle(
-                                status == "已找到"
+                                status == "已连接"
                                 ? .green
                                 : .secondary
                             )
                     }
 
                     HStack {
-                        Text("UnityFramework 基址")
-
-                        Spacer()
-
-                        Text(moduleBase)
-                            .font(.system(.body, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                Section("地址链") {
-
-                    AddressRow(
-                        title: "slot",
-                        expression: "\(moduleName) + \(offset1)",
-                        result: slotAddress
-                    )
-
-                    AddressRow(
-                        title: "staticData",
-                        expression: "[slot] + \(offset2)",
-                        result: staticDataAddress
-                    )
-
-                    AddressRow(
-                        title: "档位",
-                        expression: "[staticData] + \(offset3)",
-                        result: gearAddress
-                    )
-                }
-
-                Section("偏移配置") {
-
-                    OffsetField(
-                        title: "第一层",
-                        text: $offset1
-                    )
-
-                    OffsetField(
-                        title: "第二层",
-                        text: $offset2
-                    )
-
-                    OffsetField(
-                        title: "第三层",
-                        text: $offset3
-                    )
-                }
-
-                Section("结果") {
-
-                    HStack {
-                        Text("Int32")
+                        Text("UnityFramework")
 
                         Spacer()
 
                         Text(
-                            gearValue.map(String.init) ?? "未读取"
+                            moduleBaseText.isEmpty
+                            ? "—"
+                            : moduleBaseText
                         )
-                        .font(.system(.body, design: .monospaced))
+                        .font(
+                            .system(
+                                .body,
+                                design: .monospaced
+                            )
+                        )
+                        .foregroundStyle(.secondary)
+                    }
+                }
+
+                // MARK: Chain
+
+                Section("指针链") {
+
+                    ChainRow(
+                        name: "slot",
+                        expression:
+                            "\(moduleName) + \(offset1)",
+                        address: slotAddress
+                    )
+
+                    ChainRow(
+                        name: "staticData",
+                        expression:
+                            "[slot] + \(offset2)",
+                        address: staticDataAddress
+                    )
+
+                    ChainRow(
+                        name: "档位",
+                        expression:
+                            "[staticData] + \(offset3)",
+                        address: gearAddress
+                    )
+                }
+
+                // MARK: Offsets
+
+                Section("偏移") {
+
+                    OffsetRow(
+                        title: "Offset 1",
+                        text: $offset1
+                    )
+
+                    OffsetRow(
+                        title: "Offset 2",
+                        text: $offset2
+                    )
+
+                    OffsetRow(
+                        title: "Offset 3",
+                        text: $offset3
+                    )
+
+                    Button("计算地址链") {
+                        calculateChain()
+                    }
+                }
+
+                // MARK: Value
+
+                Section("Int32") {
+
+                    HStack {
+                        Text("当前值")
+
+                        Spacer()
+
+                        Text(
+                            gearValue.map(String.init)
+                            ?? "—"
+                        )
+                        .font(
+                            .system(
+                                .body,
+                                design: .monospaced
+                            )
+                        )
                     }
 
                     HStack {
@@ -124,14 +172,25 @@ struct ContentView: View {
 
                         Spacer()
 
-                        Text(
-                            gearValue == 0
-                            ? "近景"
-                            : gearValue == 1
-                            ? "标准"
-                            : "未读取"
-                        )
-                        .fontWeight(.semibold)
+                        Text(gearName)
+                            .fontWeight(.semibold)
+                    }
+                }
+
+                // MARK: Actions
+
+                Section("操作") {
+
+                    Button("读取") {
+                        readValue()
+                    }
+
+                    Button("写入 0（近景）") {
+                        writeValue(0)
+                    }
+
+                    Button("写入 1（标准）") {
+                        writeValue(1)
                     }
                 }
             }
@@ -139,65 +198,216 @@ struct ContentView: View {
         }
     }
 
-    private func identifyTarget() {
-        guard !bundleID.trimmingCharacters(in: .whitespaces).isEmpty else {
+    // MARK: - Connection
+
+    private func connectTarget() {
+
+        guard !bundleID.isEmpty else {
             status = "请输入 Bundle ID"
             return
         }
 
-        status = "等待目标 App 调试接口"
+        guard Int32(pidText) != nil else {
+            status = "请输入 PID"
+            return
+        }
 
-        moduleBase = "未获取"
-        slotAddress = "未计算"
-        staticDataAddress = "未计算"
-        gearAddress = "未计算"
-        gearValue = nil
+        status = "已连接"
+
+        calculateChain()
+    }
+
+    // MARK: - Chain
+
+    private func calculateChain() {
+
+        guard let base = parseHex(moduleBaseText),
+              let o1 = parseHex(offset1),
+              let o2 = parseHex(offset2),
+              let o3 = parseHex(offset3)
+        else {
+            slotAddress = "参数错误"
+            staticDataAddress = "—"
+            gearAddress = "—"
+            return
+        }
+
+        let slot = base &+ o1
+
+        slotAddress = hex(slot)
+
+        // 注意：
+        // 这里展示的是链结构。
+        // 真正的 [slot] 解引用需要目标 task 的 VM read 层。
+
+        staticDataAddress =
+            "[\(hex(slot))] + \(hex(o2))"
+
+        gearAddress =
+            "[\(staticDataAddress)] + \(hex(o3))"
+    }
+
+    // MARK: - Read
+
+    private func readValue() {
+
+        guard let address = parseHex(gearAddress) else {
+            status = "档位地址无效"
+            return
+        }
+
+        guard let value = memory.readInt32(
+            at: address
+        ) else {
+            status = "读取失败"
+            return
+        }
+
+        gearValue = value
+        status = "读取成功"
+    }
+
+    // MARK: - Write
+
+    private func writeValue(_ value: Int32) {
+
+        guard let address = parseHex(gearAddress) else {
+            status = "档位地址无效"
+            return
+        }
+
+        if memory.writeInt32(
+            at: address,
+            value: value
+        ) {
+            gearValue = value
+            status = "写入成功"
+        } else {
+            status = "写入失败"
+        }
+    }
+
+    // MARK: - Helpers
+
+    private var gearName: String {
+
+        switch gearValue {
+
+        case 0:
+            return "近景"
+
+        case 1:
+            return "标准"
+
+        default:
+            return "未知"
+        }
+    }
+
+    private func parseHex(
+        _ string: String
+    ) -> UInt64? {
+
+        let value = string
+            .trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+
+        if value.lowercased().hasPrefix("0x") {
+            return UInt64(
+                value.dropFirst(2),
+                radix: 16
+            )
+        }
+
+        return UInt64(value, radix: 16)
+    }
+
+    private func hex(
+        _ value: UInt64
+    ) -> String {
+
+        String(
+            format: "0x%llX",
+            value
+        )
     }
 }
 
-struct AddressRow: View {
 
-    let title: String
+// MARK: - Chain Row
+
+struct ChainRow: View {
+
+    let name: String
     let expression: String
-    let result: String
+    let address: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+
+        VStack(
+            alignment: .leading,
+            spacing: 5
+        ) {
 
             HStack {
-                Text(title)
+
+                Text(name)
                     .fontWeight(.medium)
 
                 Spacer()
 
-                Text(result)
-                    .font(.system(.caption, design: .monospaced))
+                Text(address)
+                    .font(
+                        .system(
+                            .caption,
+                            design: .monospaced
+                        )
+                    )
                     .foregroundStyle(.secondary)
             }
 
             Text(expression)
-                .font(.system(.caption, design: .monospaced))
+                .font(
+                    .system(
+                        .caption,
+                        design: .monospaced
+                    )
+                )
                 .foregroundStyle(.secondary)
         }
     }
 }
 
-struct OffsetField: View {
+
+// MARK: - Offset Row
+
+struct OffsetRow: View {
 
     let title: String
     @Binding var text: String
 
     var body: some View {
+
         HStack {
+
             Text(title)
 
             Spacer()
 
-            TextField("0x0", text: $text)
-                .multilineTextAlignment(.trailing)
-                .font(.system(.body, design: .monospaced))
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
+            TextField(
+                "0x0",
+                text: $text
+            )
+            .multilineTextAlignment(.trailing)
+            .font(
+                .system(
+                    .body,
+                    design: .monospaced
+                )
+            )
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
         }
     }
 }
