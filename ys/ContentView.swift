@@ -12,6 +12,8 @@ struct ContentView: View {
 
     @State private var pidText = ""
     @State private var moduleBaseText = ""
+    @State private var selectedProcessID: String?
+    @State private var runningProcesses: [ProcessInfoItem] = []
 
     @State private var status = "未连接"
 
@@ -23,6 +25,10 @@ struct ContentView: View {
 
     private var memory: MemoryManager {
         MemoryManager(task: TargetTaskManager.shared.task)
+    }
+
+    private var selectedProcess: ProcessInfoItem? {
+        runningProcesses.first { $0.id == selectedProcessID }
     }
 
     var body: some View {
@@ -47,6 +53,40 @@ struct ContentView: View {
                     )
                     .keyboardType(.numberPad)
                     .font(.system(.body, design: .monospaced))
+
+                    Button("刷新运行中的应用") {
+                        refreshProcesses()
+                    }
+
+                    if runningProcesses.isEmpty {
+                        Text("正在查找运行中的应用…")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(runningProcesses) { process in
+                            Button {
+                                selectedProcessID = process.id
+                                pidText = String(process.pid)
+                            } label: {
+                                HStack {
+                                    VStack(alignment: .leading) {
+                                        Text(process.name)
+                                        Text("PID \(process.pid)")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+
+                                    Spacer()
+
+                                    if selectedProcessID == process.id {
+                                        Image(systemName: "checkmark")
+                                            .foregroundStyle(.blue)
+                                    }
+                                }
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
 
                     TextField(
                         "模块",
@@ -211,20 +251,30 @@ struct ContentView: View {
 
     // MARK: - Connection
 
-    private func connectTarget() {
+    private func refreshProcesses() {
+        runningProcesses = ProcessManager.shared.runningProcesses()
 
-        guard !bundleID.isEmpty else {
-            status = "请输入 Bundle ID"
+        if let selected = selectedProcess,
+           !runningProcesses.contains(where: { $0.id == selected.id }) {
+            selectedProcessID = nil
+        }
+    }
+
+    private func connectTarget() {
+        let selectedBundleID = selectedProcess?.bundleID ?? bundleID
+
+        guard !selectedBundleID.isEmpty else {
+            status = "请选择运行中的应用"
             return
         }
 
         guard let pid = Int32(pidText) else {
-            status = "请输入 PID"
+            status = "请选择有效 PID"
             return
         }
 
         let result = TargetTaskManager.shared.connect(
-            bundleID: bundleID,
+            bundleID: selectedBundleID,
             pid: pid
         )
 
