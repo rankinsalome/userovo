@@ -230,8 +230,8 @@ struct ContentView: View {
         case .success:
             status = "已连接"
             calculateChain()
-        case .failure(let message):
-            status = message
+        case .failure(let error):
+            status = error.message
         }
     }
 

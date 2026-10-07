@@ -1,6 +1,23 @@
 import Darwin
 import Foundation
 
+enum TargetTaskError: Error {
+    case invalidBundleID
+    case invalidPID
+    case connectionFailed(String)
+
+    var message: String {
+        switch self {
+        case .invalidBundleID:
+            return "请输入 Bundle ID"
+        case .invalidPID:
+            return "请输入有效 PID"
+        case .connectionFailed(let message):
+            return "无法连接目标进程：\(message)"
+        }
+    }
+}
+
 final class TargetTaskManager {
 
     static let shared = TargetTaskManager()
@@ -8,27 +25,27 @@ final class TargetTaskManager {
     private init() {}
 
     private(set) var targetApp: TargetApp?
-    private(set) var task: mach_port_t = MACH_PORT_NULL
+    private(set) var task: mach_port_t = mach_port_t(MACH_PORT_NULL)
     private(set) var errorMessage: String?
 
     var isConnected: Bool {
-        task != MACH_PORT_NULL
+        task != mach_port_t(MACH_PORT_NULL)
     }
 
-    func connect(bundleID: String, pid: Int32) -> Result<TargetApp, String> {
+    func connect(bundleID: String, pid: Int32) -> Result<TargetApp, TargetTaskError> {
         let normalizedBundleID = bundleID.trimmingCharacters(
             in: .whitespacesAndNewlines
         )
 
         guard !normalizedBundleID.isEmpty else {
-            return .failure("请输入 Bundle ID")
+            return .failure(.invalidBundleID)
         }
 
         guard pid > 0 else {
-            return .failure("请输入有效 PID")
+            return .failure(.invalidPID)
         }
 
-        var connectedTask: mach_port_t = MACH_PORT_NULL
+        var connectedTask: mach_port_t = mach_port_t(MACH_PORT_NULL)
         let status = task_for_pid(
             mach_task_self_,
             pid,
@@ -36,8 +53,9 @@ final class TargetTaskManager {
         )
 
         guard status == KERN_SUCCESS else {
-            errorMessage = String(cString: mach_error_string(status))
-            return .failure("无法连接目标进程：\(errorMessage ?? "未知错误")")
+            let message = String(cString: mach_error_string(status))
+            errorMessage = message
+            return .failure(.connectionFailed(message))
         }
 
         task = connectedTask
