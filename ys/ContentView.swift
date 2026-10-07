@@ -94,6 +94,15 @@ struct ContentView: View {
                         )
                         .foregroundStyle(.secondary)
                     }
+
+                    TextField(
+                        "模块基址",
+                        text: $moduleBaseText
+                    )
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .font(.system(.body, design: .monospaced))
+                    .keyboardType(.numbersAndPunctuation)
                 }
 
                 // MARK: Chain
@@ -207,24 +216,39 @@ struct ContentView: View {
             return
         }
 
-        guard Int32(pidText) != nil else {
+        guard let pid = Int32(pidText) else {
             status = "请输入 PID"
             return
         }
 
-        status = "已连接"
+        let result = TargetTaskManager.shared.connect(
+            bundleID: bundleID,
+            pid: pid
+        )
 
-        calculateChain()
+        switch result {
+        case .success:
+            status = "已连接"
+            calculateChain()
+        case .failure(let message):
+            status = message
+        }
     }
 
     // MARK: - Chain
 
     private func calculateChain() {
+        guard TargetTaskManager.shared.isConnected else {
+            status = "请先连接目标"
+            return
+        }
 
-        guard let base = parseHex(moduleBaseText),
-              let o1 = parseHex(offset1),
-              let o2 = parseHex(offset2),
-              let o3 = parseHex(offset3)
+        guard let base = ModuleFinder(
+            targetTask: TargetTaskManager.shared
+        ).moduleBase(named: moduleName) ?? PointerChainResolver.parseHex(moduleBaseText),
+              let o1 = PointerChainResolver.parseHex(offset1),
+              let o2 = PointerChainResolver.parseHex(offset2),
+              let o3 = PointerChainResolver.parseHex(offset3)
         else {
             slotAddress = "参数错误"
             staticDataAddress = "—"
@@ -232,19 +256,15 @@ struct ContentView: View {
             return
         }
 
-        let slot = base &+ o1
+        let resolver = PointerChainResolver(
+            moduleBase: base,
+            offsets: [o1, o2, o3]
+        )
+        let addresses = resolver.addresses
 
-        slotAddress = hex(slot)
-
-        // 注意：
-        // 这里展示的是链结构。
-        // 真正的 [slot] 解引用需要目标 task 的 VM read 层。
-
-        staticDataAddress =
-            "[\(hex(slot))] + \(hex(o2))"
-
-        gearAddress =
-            "[\(staticDataAddress)] + \(hex(o3))"
+        slotAddress = PointerChainResolver.hex(addresses[1])
+        staticDataAddress = "[\(slotAddress)] + \(PointerChainResolver.hex(o2))"
+        gearAddress = PointerChainResolver.hex(addresses[3])
     }
 
     // MARK: - Read
