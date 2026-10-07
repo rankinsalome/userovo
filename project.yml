@@ -14,3 +14,4 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.userovo.ys
         GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_ENTITLEMENTS: ys/ys.entitlements
