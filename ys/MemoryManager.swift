@@ -11,11 +11,11 @@ final class MemoryManager {
         mach_task_self_
     }
 
-    // MARK: - Int32
+    // MARK: - Int32 Read
 
     func readInt32(at address: UInt64) -> Int32? {
         var value: Int32 = 0
-        var dataSize: mach_msg_type_number_t = 0
+        var dataSize: vm_size_t = 0
 
         let result = withUnsafeMutableBytes(of: &value) { buffer -> kern_return_t in
             guard let pointer = buffer.baseAddress else {
@@ -32,12 +32,14 @@ final class MemoryManager {
         }
 
         guard result == KERN_SUCCESS,
-              dataSize == mach_msg_type_number_t(MemoryLayout<Int32>.size) else {
+              dataSize == vm_size_t(MemoryLayout<Int32>.size) else {
             return nil
         }
 
         return value
     }
+
+    // MARK: - Int32 Write
 
     func writeInt32(at address: UInt64, value: Int32) -> Bool {
         var value = value
@@ -58,11 +60,11 @@ final class MemoryManager {
         }
     }
 
-    // MARK: - Float
+    // MARK: - Float Read
 
     func readFloat(at address: UInt64) -> Float? {
         var value: Float = 0
-        var dataSize: mach_msg_type_number_t = 0
+        var dataSize: vm_size_t = 0
 
         let result = withUnsafeMutableBytes(of: &value) { buffer -> kern_return_t in
             guard let pointer = buffer.baseAddress else {
@@ -79,12 +81,14 @@ final class MemoryManager {
         }
 
         guard result == KERN_SUCCESS,
-              dataSize == mach_msg_type_number_t(MemoryLayout<Float>.size) else {
+              dataSize == vm_size_t(MemoryLayout<Float>.size) else {
             return nil
         }
 
         return value
     }
+
+    // MARK: - Float Write
 
     func writeFloat(at address: UInt64, value: Float) -> Bool {
         var value = value
