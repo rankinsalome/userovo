@@ -11,26 +11,28 @@ final class MemoryManager {
         mach_task_self_
     }
 
+    // MARK: - Int32
+
     func readInt32(at address: UInt64) -> Int32? {
         var value: Int32 = 0
-        var size: mach_msg_type_number_t = 0
+        var dataSize: mach_msg_type_number_t = 0
 
         let result = withUnsafeMutableBytes(of: &value) { buffer -> kern_return_t in
-            guard let baseAddress = buffer.baseAddress else {
+            guard let pointer = buffer.baseAddress else {
                 return KERN_INVALID_ADDRESS
             }
 
-            return mach_vm_read_overwrite(
+            return vm_read_overwrite(
                 task,
-                mach_vm_address_t(address),
-                mach_vm_size_t(MemoryLayout<Int32>.size),
-                mach_vm_address_t(UInt(bitPattern: baseAddress)),
-                &size
+                vm_address_t(address),
+                vm_size_t(MemoryLayout<Int32>.size),
+                vm_address_t(UInt(bitPattern: pointer)),
+                &dataSize
             )
         }
 
         guard result == KERN_SUCCESS,
-              size == mach_msg_type_number_t(MemoryLayout<Int32>.size) else {
+              dataSize == mach_msg_type_number_t(MemoryLayout<Int32>.size) else {
             return nil
         }
 
@@ -41,14 +43,14 @@ final class MemoryManager {
         var value = value
 
         return withUnsafeBytes(of: &value) { buffer in
-            guard let baseAddress = buffer.baseAddress else {
+            guard let pointer = buffer.baseAddress else {
                 return false
             }
 
-            let result = mach_vm_write(
+            let result = vm_write(
                 task,
-                mach_vm_address_t(address),
-                vm_offset_t(UInt(bitPattern: baseAddress)),
+                vm_address_t(address),
+                vm_offset_t(UInt(bitPattern: pointer)),
                 mach_msg_type_number_t(MemoryLayout<Int32>.size)
             )
 
@@ -56,26 +58,28 @@ final class MemoryManager {
         }
     }
 
+    // MARK: - Float
+
     func readFloat(at address: UInt64) -> Float? {
         var value: Float = 0
-        var size: mach_msg_type_number_t = 0
+        var dataSize: mach_msg_type_number_t = 0
 
         let result = withUnsafeMutableBytes(of: &value) { buffer -> kern_return_t in
-            guard let baseAddress = buffer.baseAddress else {
+            guard let pointer = buffer.baseAddress else {
                 return KERN_INVALID_ADDRESS
             }
 
-            return mach_vm_read_overwrite(
+            return vm_read_overwrite(
                 task,
-                mach_vm_address_t(address),
-                mach_vm_size_t(MemoryLayout<Float>.size),
-                mach_vm_address_t(UInt(bitPattern: baseAddress)),
-                &size
+                vm_address_t(address),
+                vm_size_t(MemoryLayout<Float>.size),
+                vm_address_t(UInt(bitPattern: pointer)),
+                &dataSize
             )
         }
 
         guard result == KERN_SUCCESS,
-              size == mach_msg_type_number_t(MemoryLayout<Float>.size) else {
+              dataSize == mach_msg_type_number_t(MemoryLayout<Float>.size) else {
             return nil
         }
 
@@ -86,14 +90,14 @@ final class MemoryManager {
         var value = value
 
         return withUnsafeBytes(of: &value) { buffer in
-            guard let baseAddress = buffer.baseAddress else {
+            guard let pointer = buffer.baseAddress else {
                 return false
             }
 
-            let result = mach_vm_write(
+            let result = vm_write(
                 task,
-                mach_vm_address_t(address),
-                vm_offset_t(UInt(bitPattern: baseAddress)),
+                vm_address_t(address),
+                vm_offset_t(UInt(bitPattern: pointer)),
                 mach_msg_type_number_t(MemoryLayout<Float>.size)
             )
 
