@@ -53,7 +53,19 @@ final class TargetTaskManager {
         )
 
         guard status == KERN_SUCCESS else {
-            let message = String(cString: mach_error_string(status))
+            let code = String(status)
+            let description = String(cString: mach_error_string(status))
+            let message = "PID \(pid) 附加失败：\(description) (mach code \(code))"
+            task = mach_port_t(MACH_PORT_NULL)
+            targetApp = nil
+            errorMessage = message
+            return .failure(.connectionFailed(message))
+        }
+
+        guard connectedTask != mach_port_t(MACH_PORT_NULL) else {
+            let message = "PID \(pid) 返回了空的任务端口"
+            task = mach_port_t(MACH_PORT_NULL)
+            targetApp = nil
             errorMessage = message
             return .failure(.connectionFailed(message))
         }

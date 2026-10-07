@@ -11,9 +11,21 @@ final class MemoryManager {
         self.task = task
     }
 
+    private var isValidTask: Bool {
+        task != mach_port_t(MACH_PORT_NULL)
+    }
+
+    private func ensureValidTask() -> Bool {
+        isValidTask
+    }
+
     // MARK: - Int32 Read
 
     func readInt32(at address: UInt64) -> Int32? {
+        guard ensureValidTask() else {
+            return nil
+        }
+
         var value: Int32 = 0
         var dataSize: vm_size_t = 0
 
@@ -42,6 +54,10 @@ final class MemoryManager {
     // MARK: - Int32 Write
 
     func writeInt32(at address: UInt64, value: Int32) -> Bool {
+        guard ensureValidTask() else {
+            return false
+        }
+
         var value = value
 
         return withUnsafeBytes(of: &value) { buffer in
@@ -63,6 +79,10 @@ final class MemoryManager {
     // MARK: - Float Read
 
     func readFloat(at address: UInt64) -> Float? {
+        guard ensureValidTask() else {
+            return nil
+        }
+
         var value: Float = 0
         var dataSize: vm_size_t = 0
 
@@ -91,6 +111,10 @@ final class MemoryManager {
     // MARK: - Float Write
 
     func writeFloat(at address: UInt64, value: Float) -> Bool {
+        guard ensureValidTask() else {
+            return false
+        }
+
         var value = value
 
         return withUnsafeBytes(of: &value) { buffer in
